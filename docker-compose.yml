@@ -1,0 +1,32 @@
+services:
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
+  python-service:
+    build: ./python-service
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./python-service/chroma_db:/app/chroma_db
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_MODEL=llama3.2
+      - TOP_K=4
+    depends_on:
+      - ollama
+
+  springboot-service:
+    build: ./springboot-service
+    ports:
+      - "8080:8080"
+    environment:
+      - PYTHON_SERVICE_BASE_URL=http://python-service:8000
+    depends_on:
+      - python-service
+
+volumes:
+  ollama_data:
