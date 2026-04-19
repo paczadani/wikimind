@@ -16,6 +16,8 @@ services:
       - OLLAMA_BASE_URL=http://ollama:11434
       - OLLAMA_MODEL=llama3.2
       - TOP_K=4
+      # Override ingested topics: TOPICS="Topic A,Topic B"
+      # - TOPICS=Artificial intelligence,Machine learning
     depends_on:
       - ollama
 
@@ -27,6 +29,15 @@ services:
       - PYTHON_SERVICE_BASE_URL=http://python-service:8000
     depends_on:
       - python-service
+
+  streamlit-service:
+    build: ./streamlit-service
+    ports:
+      - "8501:8501"
+    environment:
+      - GATEWAY_URL=http://springboot-service:8080
+    depends_on:
+      - springboot-service
 
 volumes:
   ollama_data:

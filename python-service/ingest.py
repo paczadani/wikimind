@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import wikipedia
 import chromadb
@@ -8,7 +9,7 @@ CHROMA_PATH = os.path.join(os.path.dirname(__file__), "chroma_db")
 COLLECTION_NAME = "wiki_docs"
 EMBED_MODEL = "all-MiniLM-L6-v2"
 
-TOPICS = [
+DEFAULT_TOPICS = [
     "Artificial intelligence",
     "Machine learning",
     "Neural network",
@@ -16,6 +17,17 @@ TOPICS = [
     "Transformer (machine learning model)",
 ]
 MIN_PARAGRAPH_LEN = 100
+
+
+def resolve_topics() -> list[str]:
+    # CLI args take highest priority: python ingest.py "Topic A" "Topic B"
+    if len(sys.argv) > 1:
+        return sys.argv[1:]
+    # Env var second: TOPICS="Topic A,Topic B"
+    env = os.getenv("TOPICS", "").strip()
+    if env:
+        return [t.strip() for t in env.split(",") if t.strip()]
+    return DEFAULT_TOPICS
 
 
 def fetch_paragraphs(title: str) -> list[dict]:
@@ -36,6 +48,8 @@ def fetch_paragraphs(title: str) -> list[dict]:
 
 
 def main():
+    topics = resolve_topics()
+    print(f"Topics to ingest: {topics}")
     print(f"Initialising ChromaDB at {CHROMA_PATH}")
     client = chromadb.PersistentClient(path=CHROMA_PATH)
 
@@ -57,7 +71,7 @@ def main():
     all_docs, all_ids, all_metas = [], [], []
     doc_id = 0
 
-    for topic in TOPICS:
+    for topic in topics:
         print(f"Fetching: {topic}")
         paras = fetch_paragraphs(topic)
         print(f"  {len(paras)} paragraphs")

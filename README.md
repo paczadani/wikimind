@@ -5,11 +5,12 @@ A RAG (Retrieval-Augmented Generation) assistant that answers questions based on
 ## Architecture
 
 ```
-Client → Spring Boot (8080) → Python FastAPI (8000) → ChromaDB + Ollama
+Browser → Streamlit (8501) → Spring Boot (8080) → Python FastAPI (8000) → ChromaDB + Ollama
 ```
 
-- **python-service** — ingests Wikipedia articles into ChromaDB, retrieves relevant chunks, and generates answers using a local LLM via Ollama
+- **streamlit-service** — simple web UI for asking questions and viewing answers with sources
 - **springboot-service** — Spring Boot REST gateway that proxies questions to the Python service
+- **python-service** — ingests Wikipedia articles into ChromaDB, retrieves relevant chunks, and generates answers using a local LLM via Ollama
 - **ollama** — runs the LLM locally (default: `llama3.2`)
 
 ## Getting Started
@@ -20,13 +21,18 @@ Client → Spring Boot (8080) → Python FastAPI (8000) → ChromaDB + Ollama
 
 ### 1. Ingest Wikipedia data
 
-Before running the app, populate the ChromaDB vector store by running the ingest script inside the Python container:
+Before running the app, populate the ChromaDB vector store. By default it ingests 5 AI/ML topics, but you can customise them:
 
 ```bash
+# Default topics
 docker-compose run --rm python-service python ingest.py
-```
 
-This fetches and embeds Wikipedia articles on: Artificial Intelligence, Machine Learning, Neural Networks, Natural Language Processing, and Transformers.
+# Custom topics via CLI args
+docker-compose run --rm python-service python ingest.py "Quantum computing" "Large language model"
+
+# Custom topics via env var
+TOPICS="Quantum computing,Large language model" docker-compose run --rm python-service python ingest.py
+```
 
 ### 2. Run with Docker Compose
 
@@ -34,7 +40,7 @@ This fetches and embeds Wikipedia articles on: Artificial Intelligence, Machine 
 docker-compose up --build
 ```
 
-The Spring Boot gateway will be available at `http://localhost:8080`.
+The Spring Boot gateway will be available at `http://localhost:8080` and the Streamlit UI at `http://localhost:8501`.
 
 > **Note:** On first start, Ollama will pull the `llama3.2` model which may take a few minutes.
 
@@ -79,6 +85,7 @@ Environment variables (set in `docker-compose.yml`):
 
 | Variable | Default | Description |
 |---|---|---|
+| `TOPICS` | *(see defaults)* | Comma-separated Wikipedia topics to ingest (also accepts CLI args) |
 | `OLLAMA_MODEL` | `llama3.2` | LLM model to use |
 | `OLLAMA_BASE_URL` | `http://ollama:11434` | Ollama service URL |
 | `TOP_K` | `4` | Number of document chunks retrieved per query |
@@ -87,5 +94,6 @@ Environment variables (set in `docker-compose.yml`):
 ## Tech Stack
 
 - Python 3.11, FastAPI, ChromaDB, sentence-transformers, Ollama
+- Streamlit (web UI)
 - Java 17, Spring Boot 3.2
 - Docker Compose
